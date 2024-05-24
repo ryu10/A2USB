@@ -34,8 +34,8 @@ A normal USB mouse can be used with the Apple II. The emulated *Mouse Interface 
 ## Supported PCBs
 The following boards can be used to run the A2USB firmware. Some of them require modification:
 
-* [A2VGA PCBs](https://github.com/rallepalaveev/analog) by Ralle Palaveev, using DIP ICs. PCB Rev 1.6 and newer already have the options required for A2USB (see jumper options).
-  * His v1.5 PCBs (or older) can also be used, however, they need to be modified to support A2USB. See [modifications](HwModding.md).
+* [A2VGA PCBs](https://github.com/rallepalaveev/analog/tree/ecfa4b3e52f3d136d9acd2fb16cf82e98da0213a) by Ralle Palaveev, using DIP ICs. [PCB Rev 1.6](https://github.com/rallepalaveev/analog/tree/ecfa4b3e52f3d136d9acd2fb16cf82e98da0213a/A2VGA.v1.6-hardware) already have the options required for A2USB (see jumper options).
+  * Other revisions of the A2VGA PCBs can also be used, however, they need two small modifications to support A2USB. See [modifications](HwModding.md).
 
      ![A2VGA](Photos/A2VGA_Palaveev.jpg)
 
@@ -119,6 +119,6 @@ It is based on the A2VGA projects of...
 
 * ... Mark Aikens: [Apple II VGA project](https://github.com/markadev/AppleII-VGA/)
 * ... David Kuder: [A2analog project](https://github.com/V2RetroComputing/analog)
-* ... and Ralle Palaveev: [A2VGA project](https://github.com/rallepalaveev/analog)
+* ... and Ralle Palaveev: [A2VGA project](https://github.com/rallepalaveev/analog/tree/ecfa4b3e52f3d136d9acd2fb16cf82e98da0213a)
 
 Many thanks for the excellent work, which is a base for the A2USB project!

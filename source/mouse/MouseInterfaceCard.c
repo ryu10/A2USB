@@ -245,16 +245,44 @@ typedef struct
 
 TA2Mouse Mouse;
 
+// Modify clampXY() to support negative X, Y values. This is necessary to support the delta mode. 
+// In the delta mode, the mouse position is periodically reset to 0,0 (centered), and therefore 
+// detecting the negative X, Y values is important. 
+// THe delta mode is required to run Apple2Pi. (It simulates X Window mouse)
 static void clampXY()
 {
-    if (Mouse.Current.X < Mouse.Clamp.MinX)
-        Mouse.Current.X = Mouse.Clamp.MinX;
-    if (Mouse.Current.Y < Mouse.Clamp.MinY)
-        Mouse.Current.Y = Mouse.Clamp.MinY;
-    if (Mouse.Current.X > Mouse.Clamp.MaxX)
-        Mouse.Current.X = Mouse.Clamp.MaxX;
-    if (Mouse.Current.Y > Mouse.Clamp.MaxY)
-        Mouse.Current.Y = Mouse.Clamp.MaxY;
+    int16_t Mcurrent, Mmin, Mmax; // signed values
+
+    if(Mouse.Clamp.MaxX < Mouse.Clamp.MinX && Mouse.Clamp.MinX > 0x7fff){  // delta mode
+        Mmin = (int16_t)(Mouse.Clamp.MinX);
+        Mmax = (int16_t)(Mouse.Clamp.MaxX);
+        Mcurrent = (int16_t)(Mouse.Current.X);
+        if(Mcurrent < Mmin)Mcurrent = Mmin;
+        if(Mcurrent > Mmax)Mcurrent = Mmax;
+        Mouse.Current.X = (uint16_t)(Mcurrent);
+    }
+    else // normal mode
+    {     
+        if (Mouse.Current.X < Mouse.Clamp.MinX)
+            Mouse.Current.X = Mouse.Clamp.MinX;
+        if (Mouse.Current.X > Mouse.Clamp.MaxX)
+            Mouse.Current.X = Mouse.Clamp.MaxX;
+    }
+    if(Mouse.Clamp.MaxY < Mouse.Clamp.MinY && Mouse.Clamp.MinY > 0x7fff){  // delta mode
+        Mmin = (int16_t)(Mouse.Clamp.MinY);
+        Mmax = (int16_t)(Mouse.Clamp.MaxY);
+        Mcurrent = (int16_t)(Mouse.Current.Y);
+        if(Mcurrent < Mmin)Mcurrent = Mmin;
+        if(Mcurrent > Mmax)Mcurrent = Mmax;
+        Mouse.Current.Y = (uint16_t)(Mcurrent);
+    }
+    else // normal mode
+    {     
+        if (Mouse.Current.Y < Mouse.Clamp.MinY)
+            Mouse.Current.Y = Mouse.Clamp.MinY;
+        if (Mouse.Current.Y > Mouse.Clamp.MaxY)
+            Mouse.Current.Y = Mouse.Clamp.MaxY;
+    }
 }
 
 static void mouseCommandSet()
@@ -398,13 +426,14 @@ static void mouseCommandClamp()
     uint16_t MinClamp = Mouse.WriteBuffer[3] | (Mouse.WriteBuffer[1] << 8);
     uint16_t MaxClamp = Mouse.WriteBuffer[2] | (Mouse.WriteBuffer[0] << 8);
 
-    if (MinClamp > MaxClamp)
-    {
-        uint32_t t = MaxClamp;
-        t += MinClamp;
-        MaxClamp = (t>>1);
-        MinClamp = 0;
-    }
+    // disable this normalization to support delta mode
+    // if (MinClamp > MaxClamp)
+    // {
+    //     uint32_t t = MaxClamp;
+    //     t += MinClamp;
+    //     MaxClamp = (t>>1);
+    //     MinClamp = 0;
+    // }
 
     if (Mouse.Command & 0x1)
     {
@@ -561,37 +590,63 @@ static void mouseControllerRead(uint8_t portB)
 }
 
 /** Mouse movement reports are processed here. */
+// Modify mouseControllerMoveXY() to support the delta mode. 
+// THe delta mode is required to run Apple2Pi. (It simulates X Window mouse)
 void mouseControllerMoveXY(int8_t X, int8_t Y)
 {
     uint16_t OldX = Mouse.Current.X;
     uint16_t OldY = Mouse.Current.Y;
+    int32_t Current, Mmin, Mmax; // for delta mode
 
     // update current position, avoid over- and underflows, clamp to range
-    if (X>0)
-    {
-        Mouse.Current.X += X;
-        if ((Mouse.Current.X < OldX)||(Mouse.Current.X>Mouse.Clamp.MaxX))
-            Mouse.Current.X = Mouse.Clamp.MaxX;
+    if(Mouse.Clamp.MaxX < Mouse.Clamp.MinX){  // delta mode
+        Current = (int32_t)((int16_t)Mouse.Current.X);  // convert to signed then expand to 32 bit
+        Mmin =  (int32_t)((int16_t)Mouse.Clamp.MinX);
+        Mmax =  (int32_t)((int16_t)Mouse.Clamp.MaxX);
+        Current += X;
+        if(Current > Mmax)Current = Mmax;
+        if(Current < Mmin)Current = Mmin;
+        Mouse.Current.X = (uint16_t)(Current & 0x0000ffff);
     }
-    else
+    else     // normal mode
     {
-        Mouse.Current.X += X;
-        if ((Mouse.Current.X > OldX)||(Mouse.Current.X<Mouse.Clamp.MinX))
-            Mouse.Current.X = Mouse.Clamp.MinX;
+        if (X>0)
+        {
+            Mouse.Current.X += X;
+            if ((Mouse.Current.X < OldX)||(Mouse.Current.X>Mouse.Clamp.MaxX))
+                Mouse.Current.X = Mouse.Clamp.MaxX;
+        }
+        else
+        {
+            Mouse.Current.X += X;
+            if ((Mouse.Current.X > OldX)||(Mouse.Current.X<Mouse.Clamp.MinX))
+                Mouse.Current.X = Mouse.Clamp.MinX;
+        }
     }
-    if (Y>0)
+    if(Mouse.Clamp.MaxY < Mouse.Clamp.MinY){  // delta mode
+        Current = (int32_t)((int16_t)Mouse.Current.Y);  // convert to signed then expand to 32 bit
+        Mmin =  (int32_t)((int16_t)Mouse.Clamp.MinY);
+        Mmax =  (int32_t)((int16_t)Mouse.Clamp.MaxY);
+        Current += Y;
+        if(Current > Mmax)Current = Mmax;
+        if(Current < Mmin)Current = Mmin;
+        Mouse.Current.Y = (uint16_t)(Current & 0x0000ffff);
+    }
+    else     // normal mode
     {
-        Mouse.Current.Y += Y;
-        if ((Mouse.Current.Y < OldY)||(Mouse.Current.Y>Mouse.Clamp.MaxY))
-            Mouse.Current.Y = Mouse.Clamp.MaxY;
+        if (Y>0)
+        {
+            Mouse.Current.Y += Y;
+            if ((Mouse.Current.Y < OldY)||(Mouse.Current.Y>Mouse.Clamp.MaxY))
+                Mouse.Current.Y = Mouse.Clamp.MaxY;
+        }
+        else
+        {
+            Mouse.Current.Y += Y;
+            if ((Mouse.Current.Y > OldY)||(Mouse.Current.Y<Mouse.Clamp.MinY))
+                Mouse.Current.Y = Mouse.Clamp.MinY;
+        }
     }
-    else
-    {
-        Mouse.Current.Y += Y;
-        if ((Mouse.Current.Y > OldY)||(Mouse.Current.Y<Mouse.Clamp.MinY))
-            Mouse.Current.Y = Mouse.Clamp.MinY;
-    }
-
     // was there any actual movement?
     if ((Mouse.Current.X != OldX)||
         (Mouse.Current.Y != OldY))

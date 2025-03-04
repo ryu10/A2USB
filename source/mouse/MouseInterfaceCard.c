@@ -599,7 +599,7 @@ void mouseControllerMoveXY(int8_t X, int8_t Y)
     int32_t Current, Mmin, Mmax; // for delta mode
 
     // update current position, avoid over- and underflows, clamp to range
-    if(Mouse.Clamp.MaxX < Mouse.Clamp.MinX){  // delta mode
+    if(Mouse.Clamp.MaxX < Mouse.Clamp.MinX && Mouse.Clamp.MinX > 0x7fff){  // delta mode
         Current = (int32_t)((int16_t)Mouse.Current.X);  // convert to signed then expand to 32 bit
         Mmin =  (int32_t)((int16_t)Mouse.Clamp.MinX);
         Mmax =  (int32_t)((int16_t)Mouse.Clamp.MaxX);
@@ -623,7 +623,7 @@ void mouseControllerMoveXY(int8_t X, int8_t Y)
                 Mouse.Current.X = Mouse.Clamp.MinX;
         }
     }
-    if(Mouse.Clamp.MaxY < Mouse.Clamp.MinY){  // delta mode
+    if(Mouse.Clamp.MaxY < Mouse.Clamp.MinY && Mouse.Clamp.MinY > 0x7fff){  // delta mode
         Current = (int32_t)((int16_t)Mouse.Current.Y);  // convert to signed then expand to 32 bit
         Mmin =  (int32_t)((int16_t)Mouse.Clamp.MinY);
         Mmax =  (int32_t)((int16_t)Mouse.Clamp.MaxY);
